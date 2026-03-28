@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Usage Tracker Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-icon {
+            font-size: 1.5rem;
+        }
+
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .metric:last-child {
+            border-bottom: none;
+        }
+
+        .metric-label {
+            color: #666;
+        }
+
+        .metric-value {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .metric-value.cost {
+            color: #e74c3c;
+        }
+
+        .metric-value.credit {
+            color: #27ae60;
+        }
+
+        .metric-value.tokens {
+            color: #3498db;
+        }
+
+        .actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .action-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .form-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            display: none;
+        }
+
+        .form-section.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .jobs-table {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            overflow: hidden;
+            margin-bottom: 30px;
+        }
+
+        .jobs-table h3 {
+            padding: 20px;
+            margin: 0;
+            color: #333;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .status {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: white;
+            font-size: 1.2rem;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            .actions {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 AI Usage Tracker</h1>
+            <p>Monitor AI usage, track costs, and manage credits</p>
+        </div>
+
+        <div class="loading" id="loading">Loading dashboard...</div>
+
+        <div id="dashboard-content" style="display: none;">
+            <div class="dashboard">
+                <div class="card">
+                    <h3><span class="card-icon">💰</span> Credit Balance</h3>
+                    <div class="metric">
+                        <span class="metric-label">Total Credits</span>
+                        <span class="metric-value credit" id="total-credits">$0.00</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Total Spent</span>
+                        <span class="metric-value cost" id="total-spent">$0.00</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Remaining</span>
+                        <span class="metric-value credit" id="remaining-credits">$0.00</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Active Subscriptions</span>
+                        <span class="metric-value" id="active-subs">0</span>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3><span class="card-icon">📊</span> Usage Stats (30 days)</h3>
+                    <div class="metric">
+                        <span class="metric-label">Total Jobs</span>
+                        <span class="metric-value" id="total-jobs">0</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Total Tokens</span>
+                        <span class="metric-value tokens" id="total-tokens">0</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Total Cost</span>
+                        <span class="metric-value cost" id="total-cost">$0.00</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Average/Job</span>
+                        <span class="metric-value" id="avg-cost">$0.00</span>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3><span class="card-icon">🤖</span> Top Models</h3>
+                    <div id="top-models"></div>
+                </div>
+
+                <div class="card">
+                    <h3><span class="card-icon">⚡</span> Quick Actions</h3>
+                    <div class="actions">
+                        <button class="action-btn" onclick="showForm('subscription')">Add Subscription</button>
+                        <button class="action-btn" onclick="showForm('credits')">Buy Credits</button>
+                        <button class="action-btn" onclick="showForm('job')">Log Job</button>
+                        <button class="action-btn" onclick="refreshData()">Refresh Data</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Forms -->
+            <div id="subscription-form" class="form-section">
+                <h3>Add Subscription</h3>
+                <div class="form-group">
+                    <label>Subscription Name</label>
+                    <input type="text" id="sub-name" placeholder="e.g., OpenAI Pro">
+                </div>
+                <div class="form-group">
+                    <label>Monthly Credits ($)</label>
+                    <input type="number" id="sub-credits" placeholder="20.00" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>Duration (days)</label>
+                    <input type="number" id="sub-days" placeholder="30" value="30">
+                </div>
+                <button class="action-btn" onclick="addSubscription()">Add Subscription</button>
+                <button class="action-btn" onclick="hideForm('subscription')" style="background: #95a5a6;">Cancel</button>
+            </div>
+
+            <div id="credits-form" class="form-section">
+                <h3>Purchase Credits</h3>
+                <div class="form-group">
+                    <label>Credit Amount ($)</label>
+                    <input type="number" id="credit-amount" placeholder="10.00" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>Notes (optional)</label>
+                    <input type="text" id="credit-notes" placeholder="One-time purchase">
+                </div>
+                <button class="action-btn" onclick="purchaseCredits()">Purchase Credits</button>
+                <button class="action-btn" onclick="hideForm('credits')" style="background: #95a5a6;">Cancel</button>
+            </div>
+
+            <div id="job-form" class="form-section">
+                <h3>Log AI Job</h3>
+                <div class="form-group">
+                    <label>Job Name</label>
+                    <input type="text" id="job-name" placeholder="Code generation task">
+                </div>
+                <div class="form-group">
+                    <label>Model</label>
+                    <select id="job-model">
+                        <option value="gpt-4o">GPT-4 Omni</option>
+                        <option value="claude-sonnet-4">Claude Sonnet 4.0</option>
+                        <option value="gemini-pro">Gemini Pro</option>
+                        <option value="mistral-medium">Mistral Medium</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Input Text</label>
+                    <textarea id="job-input" rows="3" placeholder="User prompt..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Output Text</label>
+                    <textarea id="job-output" rows="3" placeholder="AI response..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Description (optional)</label>
+                    <input type="text" id="job-description" placeholder="Manual job entry">
+                </div>
+                <button class="action-btn" onclick="logJob()">Log Job</button>
+                <button class="action-btn" onclick="hideForm('job')" style="background: #95a5a6;">Cancel</button>
+            </div>
+
+            <!-- Recent Jobs -->
+            <div class="jobs-table">
+                <h3>Recent Jobs</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Model</th>
+                            <th>Cost</th>
+                            <th>Created</th>
+                        </tr>
+                    </thead>
+                    <tbody id="jobs-table-body">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8001';
+
+        async function fetchData() {
+            try {
+                const [balance, stats, jobs] = await Promise.all([
+                    fetch(`${API_BASE}/balance`).then(r => r.json()),
+                    fetch(`${API_BASE}/stats?days=30`).then(r => r.json()),
+                    fetch(`${API_BASE}/jobs?limit=10`).then(r => r.json())
+                ]);
+
+                updateDashboard(balance, stats, jobs);
+            } catch (error) {
+                console.error('Failed to fetch data:', error);
+                document.getElementById('loading').innerHTML = '❌ Failed to load data. Is the API running?';
+            }
+        }
+
+        function updateDashboard(balance, stats, jobs) {
+            // Update balance
+            document.getElementById('total-credits').textContent = `$${balance.total_credits.toFixed(2)}`;
+            document.getElementById('total-spent').textContent = `$${balance.total_spent.toFixed(6)}`;
+            document.getElementById('remaining-credits').textContent = `$${balance.remaining_credits.toFixed(6)}`;
+            document.getElementById('active-subs').textContent = balance.active_subscriptions;
+
+            // Update stats
+            document.getElementById('total-jobs').textContent = stats.total_jobs.toLocaleString();
+            document.getElementById('total-tokens').textContent = stats.total_tokens.toLocaleString();
+            document.getElementById('total-cost').textContent = `$${stats.total_cost.toFixed(6)}`;
+            document.getElementById('avg-cost').textContent = `$${stats.average_cost_per_job.toFixed(6)}`;
+
+            // Update top models
+            const topModelsHtml = stats.by_model.slice(0, 3).map(model => `
+                <div class="metric">
+                    <span class="metric-label">${model.model}</span>
+                    <span class="metric-value cost">$${model.cost.toFixed(4)}</span>
+                </div>
+            `).join('');
+            document.getElementById('top-models').innerHTML = topModelsHtml;
+
+            // Update jobs table
+            const jobsHtml = jobs.map(job => `
+                <tr>
+                    <td>${job.name}</td>
+                    <td>${job.model}</td>
+                    <td>$${job.cost.toFixed(6)}</td>
+                    <td>${new Date(job.created_at).toLocaleDateString()}</td>
+                </tr>
+            `).join('');
+            document.getElementById('jobs-table-body').innerHTML = jobsHtml;
+
+            // Show dashboard
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('dashboard-content').style.display = 'block';
+        }
+
+        function showForm(formType) {
+            hideAllForms();
+            document.getElementById(`${formType}-form`).classList.add('active');
+        }
+
+        function hideForm(formType) {
+            document.getElementById(`${formType}-form`).classList.remove('active');
+        }
+
+        function hideAllForms() {
+            document.querySelectorAll('.form-section').forEach(form => {
+                form.classList.remove('active');
+            });
+        }
+
+        async function addSubscription() {
+            const data = {
+                name: document.getElementById('sub-name').value,
+                credits: parseFloat(document.getElementById('sub-credits').value),
+                days: parseInt(document.getElementById('sub-days').value)
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/subscriptions`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    alert('Subscription added successfully!');
+                    hideForm('subscription');
+                    refreshData();
+                } else {
+                    alert('Failed to add subscription');
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        async function purchaseCredits() {
+            const data = {
+                amount: parseFloat(document.getElementById('credit-amount').value),
+                notes: document.getElementById('credit-notes').value
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/credits`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    alert('Credits purchased successfully!');
+                    hideForm('credits');
+                    refreshData();
+                } else {
+                    alert('Failed to purchase credits');
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        async function logJob() {
+            const data = {
+                name: document.getElementById('job-name').value,
+                model: document.getElementById('job-model').value,
+                input_text: document.getElementById('job-input').value,
+                output_text: document.getElementById('job-output').value,
+                description: document.getElementById('job-description').value
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/jobs`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    alert('Job logged successfully!');
+                    hideForm('job');
+                    refreshData();
+                } else {
+                    alert('Failed to log job');
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        function refreshData() {
+            document.getElementById('dashboard-content').style.display = 'none';
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('loading').innerHTML = 'Refreshing data...';
+            fetchData();
+        }
+
+        // Initialize
+        fetchData();
+
+        // Auto-refresh every 30 seconds
+        setInterval(fetchData, 30000);
+    </script>
+</body>
+</html>
