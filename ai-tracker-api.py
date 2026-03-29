@@ -13,7 +13,16 @@ import json
 from datetime import datetime
 
 # Import our tracker
-from ai_usage_tracker import AIUsageTracker
+# Import the tracker module from the same directory
+import importlib.util
+import os
+
+spec = importlib.util.spec_from_file_location("ai_usage_tracker", 
+                                              os.path.join(os.path.dirname(__file__), "ai-usage-tracker.py"))
+ai_usage_tracker = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(ai_usage_tracker)
+
+AIUsageTracker = ai_usage_tracker.AIUsageTracker
 
 # API Models
 class SubscriptionCreate(BaseModel):
@@ -209,7 +218,7 @@ async def get_stats(days: int = Query(30, ge=1, le=365)):
 @app.get("/models", response_model=List[Dict])
 async def list_models():
     """List available AI models with pricing."""
-    from ai_usage_tracker import MODEL_PRICING
+    MODEL_PRICING = ai_usage_tracker.MODEL_PRICING
     
     models = []
     for key, pricing in MODEL_PRICING.items():
@@ -235,7 +244,8 @@ async def estimate_cost(
 ):
     """Estimate cost for a job without logging it."""
     try:
-        from ai_usage_tracker import MODEL_PRICING, count_tokens
+        MODEL_PRICING = ai_usage_tracker.MODEL_PRICING
+        count_tokens = ai_usage_tracker.count_tokens
         
         # Normalize model name
         model_key = model.lower().replace("-", "-")

@@ -67,7 +67,7 @@ class Job:
     metadata: Dict = None
 
 
-# Current AI model pricing (March 2026)
+# Current AI model pricing (March 2026) - Synced with Yahya's OpenClaw
 MODEL_PRICING: Dict[str, ModelPricing] = {
     # OpenAI
     "gpt-4o": ModelPricing(0.0025, 0.01, 128000, "GPT-4 Omni"),
@@ -75,29 +75,54 @@ MODEL_PRICING: Dict[str, ModelPricing] = {
     "o1": ModelPricing(0.015, 0.06, 200000, "o1 reasoning model"),
     "o3-mini": ModelPricing(0.002, 0.008, 128000, "o3 Mini"),
     
-    # Anthropic
+    # Anthropic (Yahya's configured models)
     "claude-3-opus": ModelPricing(0.015, 0.075, 200000, "Claude 3 Opus"),
+    "claude-opus-4-5": ModelPricing(0.015, 0.075, 200000, "Claude Opus 4.5"),
     "claude-3-sonnet": ModelPricing(0.003, 0.015, 200000, "Claude 3 Sonnet"),
-    "claude-3-haiku": ModelPricing(0.00025, 0.00125, 200000, "Claude 3 Haiku"),
     "claude-sonnet-4": ModelPricing(0.003, 0.015, 200000, "Claude Sonnet 4.0"),
+    "claude-sonnet-4-20250514": ModelPricing(0.003, 0.015, 200000, "Claude Sonnet 4.0 (20250514)"),
+    "claude-3-haiku": ModelPricing(0.00025, 0.00125, 200000, "Claude 3 Haiku"),
     
-    # Google
+    # Google (including Yahya's Vertex AI)
     "gemini-pro": ModelPricing(0.00125, 0.005, 2000000, "Gemini Pro"),
+    "gemini-3-pro-preview": ModelPricing(0.00125, 0.005, 2000000, "Gemini 3 Pro Preview"),
+    "gemini-3-pro-image-preview": ModelPricing(0.00125, 0.005, 2000000, "Gemini 3 Pro Image"),
     "gemini-flash": ModelPricing(0.000125, 0.0005, 1000000, "Gemini Flash"),
+    "gemini-2.5-flash": ModelPricing(0.000125, 0.0005, 1000000, "Gemini 2.5 Flash"),
+    "gemini-2.5-pro": ModelPricing(0.00125, 0.005, 2000000, "Gemini 2.5 Pro"),
     "gemini-ultra": ModelPricing(0.0125, 0.05, 2000000, "Gemini Ultra"),
     
-    # Mistral
+    # Mistral (Yahya's primary models)
     "mistral-small": ModelPricing(0.002, 0.006, 32000, "Mistral Small"),
+    "mistral-small-2503": ModelPricing(0.002, 0.006, 32000, "Mistral Small 2503"),
     "mistral-medium": ModelPricing(0.0027, 0.0081, 32000, "Mistral Medium"),
+    "mistral-medium-2505": ModelPricing(0.0027, 0.0081, 32000, "Mistral Medium 2505"),
     "mistral-large": ModelPricing(0.008, 0.024, 32000, "Mistral Large"),
+    "pixtral-large-latest": ModelPricing(0.008, 0.024, 32000, "Pixtral Large"),
     
-    # DeepSeek
+    # DeepSeek (Yahya's configured)
     "deepseek-chat": ModelPricing(0.00014, 0.00028, 64000, "DeepSeek Chat"),
     "deepseek-coder": ModelPricing(0.00014, 0.00028, 16000, "DeepSeek Coder"),
+    "deepseek-reasoner": ModelPricing(0.00055, 0.0019, 64000, "DeepSeek R1"),
     
-    # Groq
+    # Groq (Yahya's configured)
     "llama-3.3-70b": ModelPricing(0.00059, 0.00079, 131072, "Llama 3.3 70B on Groq"),
+    "llama-3.3-70b-versatile": ModelPricing(0.00059, 0.00079, 131072, "Llama 3.3 70B Versatile"),
     "mixtral-8x7b": ModelPricing(0.00027, 0.00027, 32768, "Mixtral 8x7B on Groq"),
+    
+    # GitHub Copilot (through OpenClaw)
+    "github-copilot/gpt-4o": ModelPricing(0.0025, 0.01, 128000, "GitHub Copilot GPT-4o"),
+    
+    # Model aliases from OpenClaw config
+    "opus": ModelPricing(0.015, 0.075, 200000, "Claude Opus (alias)"),
+    "sonnet": ModelPricing(0.003, 0.015, 200000, "Claude Sonnet (alias)"),
+    "gemini": ModelPricing(0.00125, 0.005, 2000000, "Gemini (alias)"),
+    "gpt4o": ModelPricing(0.0025, 0.01, 128000, "GPT-4o (alias)"),
+    "gpt4o-mini": ModelPricing(0.00015, 0.0006, 128000, "GPT-4o Mini (alias)"),
+    "groq-llama": ModelPricing(0.00059, 0.00079, 131072, "Groq Llama (alias)"),
+    "vertex-pro": ModelPricing(0.00125, 0.005, 2000000, "Vertex Pro (alias)"),
+    "vertex-flash": ModelPricing(0.000125, 0.0005, 1000000, "Vertex Flash (alias)"),
+    "deepseek-r1-native": ModelPricing(0.00055, 0.0019, 64000, "DeepSeek R1 (alias)"),
 }
 
 
@@ -498,7 +523,6 @@ def main():
     
     # List jobs
     jobs_parser = subparsers.add_parser("jobs", help="List recent jobs")
-    jobs_parser.add_parser("list-jobs", help="List recent jobs")
     jobs_parser.add_argument("--limit", type=int, default=10, help="Number of jobs to show")
     
     # Job details
@@ -561,7 +585,7 @@ def main():
         elif args.command == "stats":
             result = tracker.get_usage_stats(args.days)
             
-        elif args.command in ["jobs", "list-jobs"]:
+        elif args.command == "jobs":
             result = {"recent_jobs": tracker.list_recent_jobs(getattr(args, 'limit', 10))}
             
         elif args.command == "job-details":
@@ -628,7 +652,7 @@ Average per Job: ${result['average_cost_per_job']:.6f}""")
             for model in result['by_model']:
                 print(f"  • {model['model']}: {model['jobs']} jobs, ${model['cost']:.6f}")
     
-    elif command in ["jobs", "list-jobs"]:
+    elif command == "jobs":
         print("📋 Recent Jobs:")
         for job in result['recent_jobs']:
             print(f"  • {job['name']} ({job['model']}) - ${job['cost']:.6f} - {job['created_at'][:16]}")
